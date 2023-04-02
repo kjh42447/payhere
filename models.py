@@ -1,5 +1,6 @@
 from sqlalchemy import Column, TEXT, INT, ForeignKey, DateTime
 from sqlalchemy.ext.declarative import declarative_base
+from pydantic import BaseModel
 
 Base = declarative_base()
 
@@ -18,7 +19,7 @@ class User(Base):
             "email": self.email
         }
 
-class UserCreate(Base):
+class UserCreate(BaseModel):
     username: str
     email: str
     password: str
