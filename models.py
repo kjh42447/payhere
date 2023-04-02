@@ -44,3 +44,9 @@ class ExpensesCreate(BaseModel):
     user_id: int
     cost: int
     comment: str
+
+class ExpensesPatch(BaseModel):
+    Expenses_id: int
+    user_id: int
+    cost: int
+    comment: str

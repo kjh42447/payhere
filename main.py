@@ -11,7 +11,7 @@ import jwt
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from database import engineconn
-from models import User, UserCreate, Expenses, ExpensesCreate
+from models import User, UserCreate, Expenses, ExpensesCreate, ExpensesPatch
 
 load_dotenv()
 
@@ -142,7 +142,6 @@ async def read_users(db: Session = Depends(engine.sessionmaker)):
 # 가계부 생성 API
 @app.post("/expenses")
 async def create_expenses(expenses: ExpensesCreate, db: Session = Depends(engine.sessionmaker), token: str = Depends(api_key_header)):
-    print(token)
     decoded_token = decode_token(token[7:])
     email = decoded_token["email"]
     user = db.query(User).filter(User.email == email).first()
