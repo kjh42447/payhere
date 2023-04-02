@@ -76,6 +76,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
     return user
 
+# 가계부 정보 조회
+async def get_expenses(expense: ExpensesPatch, db:Session):
+    expenses = db.query(Expenses).filter(Expenses.expenses_id == expense.expenses_id).first()
+    if expenses is None:
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+    return expenses
 
 # 비밀번호를 해싱하는 함수
 def verify_password(plain_password, hashed_password):
@@ -156,3 +162,25 @@ async def create_expenses(expenses: ExpensesCreate, db: Session = Depends(engine
     db.refresh(new_expenses)
 
     return new_expenses.jsonable()
+
+# 가계부 수정 API
+@app.patch("/expenses")
+async def patch_expenses(expenses: ExpensesPatch, db: Session = Depends(engine.sessionmaker), token: str = Depends(api_key_header)):
+    decoded_token = decode_token(token[7:])
+    email = decoded_token["email"]
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    expense = await get_expenses(expenses, db)
+
+    if not expense:
+        raise HTTPException(status_code=400, detail="Not in this expenses")
+
+    expense.cost = expenses.cost
+    expense.comment = expenses.comment
+    db.add(expense)
+    db.commit()
+    db.refresh(expense)
+
+    return expense.jsonable()

@@ -80,3 +80,35 @@ def test_login():
 #     assert response_json["cost"] == fake_cost
 #     assert response_json["comment"] == fake_comment
 #     assert response_json["user_id"] == fake_user_id
+
+def test_patch_expenses():
+    # 가짜 데이터 생성
+    fake_expenses_id = 1
+    fake_cost = 1000
+    fake_comment = "Test Comment"
+    fake_user_id = 2
+    fake_expenses = {"expenses_id": fake_expenses_id, "cost": fake_cost, "comment": fake_comment, "user_id": fake_user_id}
+    
+    # 로그인 API 호출
+    login_data = {
+    "username": "kjh42447@gmail.com",
+    "password": "testpassword1!"
+    }
+    response = client.post("/login", data=login_data)
+    token = response.json()["access_token"]
+
+    # API 호출
+    print(decode_token(token))
+    response = client.patch("/expenses", json=fake_expenses, headers={"Authorization": f"Bearer {token}"})
+    headers={"Authorization": f"Bearer {token}"}
+    print(headers)
+    print(response.json())
+
+    # 응답 상태 코드 확인
+    assert response.status_code == 200
+    
+    # 응답 내용 확인
+    response_json = response.json()
+    assert response_json["cost"] == fake_cost
+    assert response_json["comment"] == fake_comment
+    assert response_json["user_id"] == fake_user_id

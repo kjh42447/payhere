@@ -46,7 +46,7 @@ class ExpensesCreate(BaseModel):
     comment: str
 
 class ExpensesPatch(BaseModel):
-    Expenses_id: int
+    expenses_id: int
     user_id: int
     cost: int
     comment: str
