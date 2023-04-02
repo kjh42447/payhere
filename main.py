@@ -5,13 +5,13 @@ from datetime import datetime, timedelta
 import os
 
 from passlib.context import CryptContext
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm, APIKeyHeader
 import jwt
 
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from database import engineconn
-from models import User, UserCreate, Expenses
+from models import User, UserCreate, Expenses, ExpensesCreate
 
 load_dotenv()
 
@@ -23,6 +23,9 @@ session = engine.sessionmaker()
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 SECRET_KEY = os.environ.get("SECRET_KEY")
+
+# 토큰 헤더
+api_key_header = APIKeyHeader(name="Authorization")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -40,9 +43,10 @@ def decode_token(token: str):
         # JWT 디코딩
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
+        user_id: int = payload.get("user_id")
         if email is None:
             raise HTTPException(status_code=401, detail="Invalid authentication credentials")
-        token_data = {"email": email}
+        token_data = {"email": email, "user_id": user_id}
         return token_data
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Signature has expired")
@@ -124,14 +128,32 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     # 토큰 생성
     access_token = create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
+        data={"user_id": user.user_id, "sub": user.email}, expires_delta=access_token_expires
     )
     # 토큰 정보를 반환
     return {"access_token": access_token, "token_type": "bearer"}
 
-# 유저 정보 조회 api
+# 유저 정보 조회 API
 @app.get("/users")
 async def read_users(db: Session = Depends(engine.sessionmaker)):
     users = get_users(db)
     return [user.jsonable() for user in users]
 
+# 가계부 생성 API
+@app.post("/expenses")
+async def create_expenses(expenses: ExpensesCreate, db: Session = Depends(engine.sessionmaker), token: str = Depends(api_key_header)):
+    print(token)
+    decoded_token = decode_token(token[7:])
+    email = decoded_token["email"]
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user_id = decoded_token["user_id"]
+
+    new_expenses = Expenses(cost=expenses.cost, comment=expenses.comment, user_id=user_id)
+    db.add(new_expenses)
+    db.commit()
+    db.refresh(new_expenses)
+
+    return new_expenses.jsonable()

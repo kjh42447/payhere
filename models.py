@@ -1,5 +1,5 @@
 from sqlalchemy import Column, TEXT, INT, ForeignKey, DateTime
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 from pydantic import BaseModel
 
 Base = declarative_base()
@@ -27,8 +27,20 @@ class UserCreate(BaseModel):
 class Expenses(Base):
     __tablename__ = "expenses"
 
-    expenses = Column(INT, nullable=False, autoincrement=True, primary_key=True)
+    expenses_id = Column(INT, nullable=False, autoincrement=True, primary_key=True)
     cost = Column(INT, nullable=False)
     comment = Column(TEXT, nullable=False)
-    user_id = Column(INT, ForeignKey("user.user_id"))
+    user_id = Column(INT, ForeignKey("users.user_id"))
 
+    def jsonable(self):
+        return {
+            "expenses_id": self.expenses_id,
+            "user_id": self.user_id,
+            "cost": self.cost,
+            "comment": self.comment
+        }
+
+class ExpensesCreate(BaseModel):
+    user_id: int
+    cost: int
+    comment: str
