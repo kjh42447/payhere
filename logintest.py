@@ -20,8 +20,8 @@ def test_login():
     
     # 로그인 정보 생성
     login_data = {
-        "username": "john",
-        "password": "testpassword"
+    "username": "kjh42447@gmail.com",
+    "password": "testpassword1!"
     }
 
     # 회원 정보 조회
@@ -35,7 +35,7 @@ def test_login():
     print(response_data)
     
     # 로그인 API 호출
-    response = client.post("/token", data=login_data)
+    response = client.post("/login", data=login_data)
     
     # 응답 코드 확인
     assert response.status_code == 200
@@ -49,4 +49,4 @@ def test_login():
     # 발급된 토큰 디코딩
     token = response_data["access_token"]
     decoded_token = decode_token(token)
-    assert decoded_token == {"username": "john"}
+    assert decoded_token == {"email": "kjh42447@gmail.com"}

@@ -22,7 +22,7 @@ session = engine.sessionmaker()
 # jwt
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
-SECRET_KEY = os.environ.get('SECRET_KEY')
+SECRET_KEY = os.environ.get("SECRET_KEY")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -39,10 +39,10 @@ def decode_token(token: str):
     try:
         # JWT 디코딩
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        email: str = payload.get("sub")
+        if email is None:
             raise HTTPException(status_code=401, detail="Invalid authentication credentials")
-        token_data = {"username": username}
+        token_data = {"email": email}
         return token_data
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Signature has expired")
@@ -55,8 +55,8 @@ def get_users(db: Session):
     return users
 
 # 유저 정보를 조회하는 함수
-def authenticate_user(username: str, password: str, db: Session):
-    user = db.query(User).filter(User.username == username).first()
+def authenticate_user(email: str, password: str, db: Session):
+    user = db.query(User).filter(User.email == email).first()
     if not user:
         return False
     if not verify_password(password, user.password):
@@ -66,8 +66,8 @@ def authenticate_user(username: str, password: str, db: Session):
 # 유저 정보를 조회하는 Depends 함수
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(engine.sessionmaker)):
     token_data = decode_token(token)
-    username = token_data["username"]
-    user = db.query(User).filter(User.username == username).first()
+    email = token_data["email"]
+    user = db.query(User).filter(User.email == email).first()
     if user is None:
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
     return user
@@ -98,7 +98,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 @app.post("/register")
 async def register(user: UserCreate, db: Session = Depends(engine.sessionmaker)):
     # 입력한 아이디로 유저 정보 조회
-    existing_user = db.query(User).filter(User.username == user.username).first()
+    existing_user = db.query(User).filter(User.email == user.email).first()
     # 이미 해당 아이디로 가입된 유저가 있으면 에러 반환
     if existing_user:
         raise HTTPException(status_code=400, detail="Username already registered")
@@ -112,8 +112,8 @@ async def register(user: UserCreate, db: Session = Depends(engine.sessionmaker))
     # 생성한 유저 정보를 반환
     return new_user.jsonable()
 
-# 토큰 발급 API
-@app.post("/token")
+# 로그인 API
+@app.post("/login")
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(engine.sessionmaker)):
     # 입력한 아이디로 유저 정보 조회
     user = authenticate_user(form_data.username, form_data.password, db)
@@ -124,7 +124,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     # 토큰 생성
     access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
+        data={"sub": user.email}, expires_delta=access_token_expires
     )
     # 토큰 정보를 반환
     return {"access_token": access_token, "token_type": "bearer"}

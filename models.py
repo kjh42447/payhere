@@ -30,5 +30,5 @@ class Expenses(Base):
     expenses = Column(INT, nullable=False, autoincrement=True, primary_key=True)
     cost = Column(INT, nullable=False)
     comment = Column(TEXT, nullable=False)
-    user_id = Column(INT, ForeignKey('user.user_id'))
+    user_id = Column(INT, ForeignKey("user.user_id"))
 
